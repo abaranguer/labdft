@@ -1,0 +1,7 @@
+Debug/
+*.dat
+*.txt
+*.project
+*.mk
+.clangd
+.clang-format
