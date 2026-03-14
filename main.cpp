@@ -4,14 +4,12 @@
 #include <fstream>
 
 const int N = 1024;
-const std::complex<double> j(0.0, 1.0);
-const std::complex<double> dos(2, 0);
-const std::complex<double> complexN(N, 0);
 
 double x[N];
 std::complex<double> y[N];
+std::complex<double> rx[N];
 
-void loadXSquare(double x[])
+void loadXSquare(double x[], int N)
 {
     double xx = 0;
     const int HALF_T = 128;
@@ -26,7 +24,7 @@ void loadXSquare(double x[])
     }
 }
 
-void loadXSinus(double x[])
+void loadXSinus(double x[], int N)
 {
     double step = 2 * M_PI / N;    
 
@@ -35,7 +33,7 @@ void loadXSinus(double x[])
     }
 }
 
-void loadXpulse(double x[])
+void loadXpulse(double x[], int N)
 {
      for(int i = 0; i < N; i++) {
         if ( (i > 502) && (i < 522) ) {
@@ -46,7 +44,7 @@ void loadXpulse(double x[])
     }
 }
 
-void loadXSawTooth(double x[])
+void loadXSawTooth(double x[], int N)
 {
     int p1 = N / 4;
     int p2 = 3 * N / 4;
@@ -68,13 +66,10 @@ void loadXSawTooth(double x[])
     }
 }
 
-int main(int argc, char** argv)
-{
-    // loadXSquare(x);
-    // loadXSinus(x);
-    loadXpulse(x);
-    // loadXSawTooth(x);
-
+void dft(double x[], std::complex<double> y[], int N) {
+    const std::complex<double> j(0.0, 1.0);
+    const std::complex<double> two(2, 0);
+    const std::complex<double> complexN(N, 0);
     std::complex<double> complex_k(0, 0);
     std::complex<double> complex_n(0, 0);
 
@@ -83,11 +78,31 @@ int main(int argc, char** argv)
         complex_k = k;
         for(int n = 0; n < N; n++) {
             complex_n = n;
-            y[k] = y[k] + x[n] * exp(-j * dos * M_PI * complex_k * complex_n / complexN);
+            y[k] = y[k] + x[n] * exp(-j * two * M_PI * complex_k * complex_n / complexN);
         }
-    }
+    }    
+}
 
-    std::ofstream f("dades.txt");
+void idft(std::complex<double> y[], std::complex<double> x[], int N) {
+    const std::complex<double> j(0.0, 1.0);
+    const std::complex<double> one(1, 0);
+    const std::complex<double> two(2, 0);
+    const std::complex<double> complexN(N, 0);
+    std::complex<double> complex_k(0, 0);
+    std::complex<double> complex_n(0, 0);
+
+    for(int n = 0; n < N; n++) {
+        x[n] = 0;
+        complex_n = n;
+        for(int k = 0; k < N; k++) {
+            complex_k = k;
+            x[n] = x[n] + (one / complexN) * y[k] * exp(j * two * M_PI * complex_k * complex_n / complexN);
+        }
+    }    
+}
+
+void saveDatFile(double x[], std::complex<double> y[], int N, char *fileName) {
+    std::ofstream f(fileName);
 
     for(int i = 0; i < N; i++) {
         f << i << "  " << x[i] << "  " << abs(y[i]) << "  " << arg(y[i]) << std::endl;
@@ -95,8 +110,35 @@ int main(int argc, char** argv)
     
     f.close();
     
-    // gnuplot: plot "dades.txt" using 3 with impulses
+    // gnuplot: plot "fileName" using 3 with impulses
     // i, x[i], module(y[i]), phase(y[i])
+}
+
+void saveDatFile(std::complex<double> x[], std::complex<double> y[], int N, char *fileName) {
+    std::ofstream f(fileName);
+
+    for(int i = 0; i < N; i++) {
+        f << i << "  " << abs(x[i]) << "  " << arg(x[i]) << "  " << abs(y[i]) << "  " << arg(y[i]) << std::endl;
+    }
+    
+    f.close();
+    
+    // gnuplot: plot "fileName" using 3 with impulses
+    // i, x[i], module(y[i]), phase(y[i])
+}
+
+int main(int argc, char** argv)
+{
+    // loadXSquare(x, N);
+    // loadXSinus(x, N);
+    loadXpulse(x, N);
+    // loadXSawTooth(x), N;
+    
+    dft(x, y, N);
+    saveDatFile(x, y, N, "result.dat");
+    
+    idft(y, rx, N);
+    saveDatFile(y, rx, N, "result2.dat");
     
     std::cout << "Done!" << std::endl;
 
